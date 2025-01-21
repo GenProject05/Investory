@@ -14,6 +14,9 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\TextArea;
+use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
+use pxlrbt\FilamentExcel\Columns\Column;
+use pxlrbt\FilamentExcel\Exports\ExcelExport;
 
 class TransactionResource extends Resource
 {
@@ -139,13 +142,13 @@ class TransactionResource extends Resource
                     ->sortable(),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('type')
+                Tables\Filters\SelectFilter::make('type') // Filter by type
                     ->label('Tipe Transaksi')
                     ->options([
                         'income' => 'Pendapatan',
                         'expense' => 'Pengeluaran',
                     ]),
-                Tables\Filters\SelectFilter::make('category')
+                Tables\Filters\SelectFilter::make('category') // Filter by category
                     ->label('Kategori')
                     ->multiple()
                     ->options([
@@ -166,7 +169,7 @@ class TransactionResource extends Resource
                         'emergency' => 'Pengeluaran Darurat',
                         'donation_given' => 'Donasi Diberikan',
                     ]),
-                Tables\Filters\Filter::make('date')
+                Tables\Filters\Filter::make('date') // Filter by date
                     ->form([
                         Forms\Components\DatePicker::make('date_from')
                             ->label('Dari Tanggal'),
@@ -190,8 +193,28 @@ class TransactionResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make(), // Delete the selected records
+                    ExportBulkAction::make() // Export the selected records
+                        ->label('Export')
+                        ->exports([
+                            ExcelExport::make()
+                                # ->queue()->withChunkSize(250) // Queue the export job and set the chunk size
+                                ->fromTable()
+                                ->withColumns([
+                                    Column::make('title')->heading('Judul Transaksi'),
+                                    Column::make('amount')->heading('Jumlah Uang')->format('Rp #,##0.00'),
+                                    Column::make('type')->heading('Tipe Transaksi'),
+                                    Column::make('category')->heading('Kategori'),
+                                    Column::make('notes')->heading('Catatan'),
+                                    Column::make('date')->heading('Tanggal Transaksi'),
+                                ])
+                                ->askForFilename('Transaksi-' . now()->format('d-m-Y'))
+                                ->askForWriterType(),
+                        ]),
                 ]),
+            ])
+            ->headerActions([
+                //
             ]);
     }
 
